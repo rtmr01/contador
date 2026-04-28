@@ -18,7 +18,7 @@ const VEHICLE_TYPES = [
   { type: "3S2", key: "j" },
   { type: "3S3", key: "k" },
   { type: "3T4", key: "l" },
-  { type: "Caminhao 8 eixos", key: "z" }
+  { type: "Van", key: "z" }
 ];
 
 // NOTE: The 'Space' key is reserved for Play/Pause and should not be used in VEHICLE_TYPES.
