@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Upload, Play, Pause, SkipBack, SkipForward, Save, Trash2, X, RefreshCw } from 'lucide-react';
+import { Upload, Play, Pause, SkipBack, SkipForward, Save, Trash2, X, RefreshCw, Lock, LogOut } from 'lucide-react';
 import './App.css';
 
 const VEHICLE_TYPES = [
@@ -23,7 +23,72 @@ const VEHICLE_TYPES = [
 
 // NOTE: The 'Space' key is reserved for Play/Pause and should not be used in VEHICLE_TYPES.
 
+const ALLOWED_USERS = [
+  { user: "geosistemas1", pass: "geo@123" },
+  { user: "geosistemas2", pass: "geo@123" },
+  { user: "geosistemas3", pass: "geo@123" },
+];
+
+function Login({ onLogin }) {
+  const [user, setUser] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const envUser = import.meta.env.VITE_USER;
+    const envPass = import.meta.env.VITE_PASSWORD;
+
+    const isValidUser = (user === envUser && password === envPass) || 
+                        ALLOWED_USERS.find(u => u.user === user && u.pass === password);
+
+    if (isValidUser) {
+      onLogin();
+    } else {
+      setError("Usuário ou senha incorretos");
+    }
+  };
+
+  return (
+    <div className="login-overlay">
+      <div className="login-card">
+        <div className="login-icon">
+          <Lock size={40} color="#a45ee5" />
+        </div>
+        <h2>Acesso ao Sistema</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label>Usuário</label>
+            <input 
+              type="text" 
+              value={user} 
+              onChange={(e) => setUser(e.target.value)} 
+              placeholder="Digite seu usuário"
+              required
+            />
+          </div>
+          <div className="input-group">
+            <label>Senha</label>
+            <input 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              placeholder="Digite sua senha"
+              required
+            />
+          </div>
+          {error && <p className="login-error">{error}</p>}
+          <button type="submit" className="login-btn">Entrar</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem("isLoggedIn") === "true";
+  });
   const [videoSrc, setVideoSrc] = useState(null);
   const [direction, setDirection] = useState("1");
   const [isPlaying, setIsPlaying] = useState(false);
@@ -392,6 +457,18 @@ function App() {
     setTimeout(() => setNotification(""), 5000);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("isLoggedIn");
+    setIsLoggedIn(false);
+  };
+
+  if (!isLoggedIn) {
+    return <Login onLogin={() => {
+      localStorage.setItem("isLoggedIn", "true");
+      setIsLoggedIn(true);
+    }} />;
+  }
+
   return (
     <div className="app-container">
       {notification && <div className="notification">{notification}</div>}
@@ -399,7 +476,13 @@ function App() {
       <div className="main-content">
         <div className="header">
           <div>
-            <h1>Contador de tráfego</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <h1>Contador de tráfego</h1>
+              <button onClick={handleLogout} className="logout-btn" title="Sair">
+                <LogOut size={18} />
+                Sair
+              </button>
+            </div>
             <div className="keyboard-shortcut-hint" style={{ textAlign: 'left', marginTop: '5px' }}>
               <strong>ESPAÇO:</strong> Pausar/Play | <strong>← →</strong>: -/+ 5s | <strong>Shift + Tecla</strong>: Remove veiculo
             </div>
