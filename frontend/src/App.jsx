@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Upload, Play, Pause, SkipBack, SkipForward, Save, Trash2, X, RefreshCw, Lock, LogOut } from 'lucide-react';
+import { Upload, Play, Pause, SkipBack, SkipForward, Save, Trash2, X, Lock, LogOut } from 'lucide-react';
 import './App.css';
 
 const VEHICLE_TYPES = [
@@ -107,84 +107,10 @@ function App() {
   const [syncPoints, setSyncPoints] = useState([]);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [newSyncTime, setNewSyncTime] = useState("");
-  const [isVerifying, setIsVerifying] = useState(false);
   const [exportFileName, setExportFileName] = useState("eventos_manual");
-
-  const apiKey = import.meta.env.VITE_MOONDREAM_API_KEY;
 
   const videoRef = useRef(null);
 
-  // ---------- MOONDREAM OCR LOGIC ----------
-  const extractTimeFromFrame = async (videoEl) => {
-    try {
-      const canvas = document.createElement("canvas");
-      // Grab top-left corner where time usually is (adjust width/height if needed)
-      canvas.width = Math.min(800, videoEl.videoWidth || 800);
-      canvas.height = Math.min(100, videoEl.videoHeight || 100);
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(videoEl, 0, 0, videoEl.videoWidth, videoEl.videoHeight, 0, 0, videoEl.videoWidth, videoEl.videoHeight);
-
-      const base64Image = canvas.toDataURL("image/jpeg", 0.9).split(',')[1];
-
-      const res = await fetch("https://api.moondream.ai/v1/query", {
-        method: "POST",
-        headers: {
-          "X-Moondream-Auth": apiKey,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          image_url: `data:image/jpeg;base64,${base64Image}`,
-          question: "The image contains a timestamp exactly in the format 'YYYY-MM-DD HH:MM:SS' (Year-Month-Day Hour:Minute:Second). Read the text EXACTLY as it appears on the image without changing the order of the numbers. Return ONLY the string. Example: '2026-03-18 08:52:29'."
-        })
-      });
-      const data = await res.json();
-      return data.answer.trim();
-    } catch (e) {
-      console.error("Moondream Error:", e);
-      return null;
-    }
-  };
-
-  const runInitialSync = async () => {
-    if (!videoRef.current) return;
-    setIsVerifying(true);
-    const v = videoRef.current;
-    const ct = v.currentTime;
-
-    showNotification(`Analisando OCR no segundo ${Math.floor(ct)}...`);
-    const timeStr = await extractTimeFromFrame(v);
-
-    if (timeStr && timeStr !== "ERROR" && timeStr.length >= 10) {
-      // Extrai usando regex garantindo a leitura no padrao da camera (ANO-MES-DIA HORA:MIN:SEG)
-      const match = timeStr.match(/(\d{4})[-/](\d{2})[-/](\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
-
-      if (match) {
-        const [, year, month, day, hour, minute, second] = match;
-        const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
-        const d = new Date(isoString);
-
-        if (!isNaN(d.getTime())) {
-          // Atualiza a ancoragem
-          setSyncPoints(prev => [...prev, { videoTime: ct, realTime: d }]);
-          // Atualiza tbm o startTime para visualizacao
-          const calculatedStart = new Date(d.getTime() - ct * 1000);
-          setStartTime(formatDateTimeISO(calculatedStart));
-
-          const brFormat = `${day}-${month}-${year} ${hour}:${minute}:${second}`;
-          showNotification(`Sucesso! Ancorado em: ${brFormat}`);
-        } else {
-          showNotification("Erro: O Moondream retornou um formato inválido: " + timeStr);
-        }
-      } else {
-        showNotification("Erro: Formato lido não foi reconhecido: " + timeStr);
-      }
-    } else {
-      showNotification("Erro: O Moondream não conseguiu ler a data/hora com clareza. Tente em outro segundo.");
-    }
-
-    setIsVerifying(false);
-  };
-  // ----------------------------------------
 
   useEffect(() => {
     let d;
@@ -484,16 +410,10 @@ function App() {
             </div>
           </div>
           {videoSrc && (
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={runInitialSync} disabled={isVerifying} style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', cursor: isVerifying ? 'not-allowed' : 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.3)', opacity: isVerifying ? 0.7 : 1 }}>
-                <RefreshCw size={20} className={isVerifying ? "spin-anim" : ""} />
-                {isVerifying ? "Analisando..." : "Sincronizar Auto (OCR)"}
-              </button>
-              <button onClick={handleRemoveVideo} style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.3)', transition: 'transform 0.2s' }}>
-                <X size={20} />
-                Trocar Vídeo
-              </button>
-            </div>
+            <button onClick={handleRemoveVideo} style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.3)', transition: 'transform 0.2s' }}>
+              <X size={20} />
+              Trocar Vídeo
+            </button>
           )}
         </div>
 
@@ -501,9 +421,6 @@ function App() {
           <div className="upload-section">
             <Upload size={48} color="#3b82f6" style={{ marginBottom: 15 }} />
             <h2>Faça upload do seu vídeo</h2>
-            <p style={{ color: '#94a3b8', textAlign: 'center', marginBottom: 20 }}>
-              O Moondream será simulado com um aviso sonoro no final :)
-            </p>
             <label className="upload-label">
               <Upload size={20} />
               Escolher Vídeo
