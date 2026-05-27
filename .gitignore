@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+venv/
+*.pyc
+*.pyo
+*.pyd
+.env
+
+# Bancos de Dados
+*.db
+*.sqlite3
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+.next/
+
+# IDE e Sistema
+.vscode/
+.idea/
+.DS_Store
